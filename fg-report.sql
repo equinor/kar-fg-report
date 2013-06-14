@@ -11,39 +11,41 @@
 -- 05oct12    HAASK     New program
 -- 19oct12    HAASK     Done changes according to requirements from Sigve.
 -- 14nov12    HAASK     Will now copy files to G:\GAS\PA\ASPEN at the end.
+-- 2013-06-12 ROVO      Write results directly to external database.
 --------------------------------------------------------------------------
 local tid integer,
-	dayStart integer,
-	dayEnd integer,
-	max real,
-	min real,
-	avg real,
-	timeStart timestamp,
-	timeend timestamp,
-	firstTime timestamp,
-	lastTime timestamp,
+      dayStart integer,
+      dayEnd integer,
+      max real,
+      min real,
+      avg real,
+      timeStart timestamp,
+      timeend timestamp,
+      firstTime timestamp,
+      lastTime timestamp,
       hourStep integer,
-	minCounter integer,
-	maxCounter integer,
-	GDmax real,
-	GDmin real,
+      minCounter integer,
+      maxCounter integer,
+      GDmax real,
+      GDmin real,
       GD2max real,
-	GD2min real,
-	FDmin real,
-	FDmax real,
-	runGD integer,
-	runFD integer;
+      GD2min real,
+      FDmin real,
+      FDmax real,
+      runGD integer,
+      runFD integer;
 
 FUNCTION CheckTag(tagname CHAR(20), limMax real, limMin real)
 LOCAL timeCurr timestamp,
       timeStep integer;
 
-   timeCurr = timeStart;
-   timeStep = hourStep*60*60*10;
-   firstTime = current_timestamp;
-   lastTime = current_timestamp;
-   minCounter=0;
-   maxCounter=0;
+      timeCurr = timeStart;
+      timeStep = hourStep*60*60*10;
+      firstTime = current_timestamp;
+      lastTime = current_timestamp;
+      minCounter=0;
+      maxCounter=0;
+
    while (timeCurr < timeEnd) do
       for (select min, max, avg from aggregates where name like local.tagname and ts between timeCurr and timeCurr + timeStep and period = timeStep) do
          if (min > limMin and min < limMax)  then
@@ -53,7 +55,7 @@ LOCAL timeCurr timestamp,
             lastTime  = timeCurr;
             minCounter = minCounter + 1;
             if (max > limMax) then
-		   maxCounter = maxCounter + 1;
+               maxCounter = maxCounter + 1;
             end
 --            write 'counter:'||minCounter||'/'||maxCounter;
          end
@@ -92,29 +94,41 @@ write 'Start time:' || cast(timeStart as char format 'DD.MM.YY HH:MI:SS');
 write 'End time:'|| cast(timeEnd as char format 'DD.MM.YY HH:MI:SS');
 
 if (runGD = 1) then
-  SET OUTPUT 'C:\logs\FG-report-GDR.csv';
-  write 'Date:' || cast(current_timestamp as char format 'DD.MM.YY HH:MI:SS') || ';Report limits: '||GDmin||' <x< '||GDmax;
-  write 'Tagname;Description;Counter1;Counter2;First;Last';
+   SET OUTPUT 'C:\logs\FG-report-GDR.csv';
+   write 'Date:' || cast(current_timestamp as char format 'DD.MM.YY HH:MI:SS') || ';Report limits: '||GDmin||' <x< '||GDmax;
+   write 'Tagname;Description;Counter1;Counter2;First;Last';
 
-  for (select name, ip_description from ip_analogdef where name like '___GD%R' and name not like '%Diff%' order by 1) do
-     CheckTag(name, GDmax, GDmin);
-     if (minCounter > 0) then
-        write name ||';'||ip_description||';'|| minCounter||';'||maxCounter||';'||
-		cast(firstTime as char format 'DD.MM.YY HH:MI:SS')||';'||cast(lastTime as char format 'DD.MM.YY HH:MI:SS');
-     end
-  end
+   for (select name, ip_description from ip_analogdef where name like '___GD%R' and name not like '%Diff%' order by 1) do
+      CheckTag(name, GDmax, GDmin);
+      if (minCounter > 0) then
+         write name ||';'||ip_description||';'|| minCounter||';'||maxCounter||';'||
+            cast(firstTime as char format 'DD.MM.YY HH:MI:SS')||';'||cast(lastTime as char format 'DD.MM.YY HH:MI:SS');
+         begin
+            insert into "T221"."ISI"."FG_MAINT_ALARMS" (ALARM_DATE, TAG, DESCRIPTION, COUNTER_1, COUNTER_2, FIRST_DATE, LAST_DATE, TYPE_ID)
+            values (cast(current_timestamp as char format 'DD-MON-YY'), name, ip_description, minCounter, maxCounter, firstTime, lastTime, 3);
+         exception
+            write 'Failed to create record. ' || error_text;
+         end
+      end
+   end
 
-  SET OUTPUT 'C:\logs\FG-report-GD.csv';
-  write 'Date:' || cast(current_timestamp as char format 'DD.MM.YY HH:MI:SS') || ';Report limits: '||GD2min||' <x< '||GD2max;
-  write 'Tagname;Description;Counter1;Counter2;First;Last';
+   SET OUTPUT 'C:\logs\FG-report-GD.csv';
+   write 'Date:' || cast(current_timestamp as char format 'DD.MM.YY HH:MI:SS') || ';Report limits: '||GD2min||' <x< '||GD2max;
+   write 'Tagname;Description;Counter1;Counter2;First;Last';
 
-  for (select name, ip_description from ip_analogdef where (name like '___GD%' or name like '__GD%') and name not like '%Diff%' order by 1) do
-     CheckTag(name, GD2max, GD2min);
-     if (minCounter > 0) then
-        write name ||';'||ip_description||';'|| minCounter||';'||maxCounter||';'||
-		cast(firstTime as char format 'DD.MM.YY HH:MI:SS')||';'||cast(lastTime as char format 'DD.MM.YY HH:MI:SS');
-     end
-  end
+   for (select name, ip_description from ip_analogdef where (name like '___GD%' or name like '__GD%') and name not like '%Diff%' order by 1) do
+      CheckTag(name, GD2max, GD2min);
+      if (minCounter > 0) then
+         write name ||';'||ip_description||';'|| minCounter||';'||maxCounter||';'||
+            cast(firstTime as char format 'DD.MM.YY HH:MI:SS')||';'||cast(lastTime as char format 'DD.MM.YY HH:MI:SS');
+         begin
+            insert into "T221"."ISI"."FG_MAINT_ALARMS" (ALARM_DATE, TAG, DESCRIPTION, COUNTER_1, COUNTER_2, FIRST_DATE, LAST_DATE, TYPE_ID)
+            values (cast(current_timestamp as char format 'DD-MON-YY'), name, ip_description, minCounter, maxCounter, firstTime, lastTime, 1);
+         exception
+            write 'Failed to create record. ' || error_text;
+         end
+      end
+   end
 
 --  for (select name from ip_analogdef where name like '__GD%' and name not like '%Diff%' order by 1) do
 --     for (select min, max, avg from aggregates where name like local.name and ts between timeStart and timeEnd and period = timeEnd - timeStart) do
@@ -127,17 +141,23 @@ if (runGD = 1) then
 end
 
 if (runFD = 1) then
-  SET OUTPUT 'C:\logs\FG-report-FD.csv';
-  write 'Date:' || cast(current_timestamp as char format 'DD.MM.YY HH:MI:SS') || ';Report limits: '||FDmin||' <x< '||FDmax;
-  write 'Tagname;Description;Counter1;Counter2;First;Last';
+   SET OUTPUT 'C:\logs\FG-report-FD.csv';
+   write 'Date:' || cast(current_timestamp as char format 'DD.MM.YY HH:MI:SS') || ';Report limits: '||FDmin||' <x< '||FDmax;
+   write 'Tagname;Description;Counter1;Counter2;First;Last';
 
-  for (select name, ip_description from ip_analogdef where (name like '__FD%' or name like '___FD%' or name like 'F3%DF%') and name not like '%FDI%' order by 1) do
-     CheckTag(name, FDmax, FDmin);
-     if (minCounter > 0) then
-        write name ||';'||ip_description||';'|| minCounter||';'||maxCounter||';'||
-		cast(firstTime as char format 'DD.MM.YY HH:MI:SS')||';'||cast(lastTime as char format 'DD.MM.YY HH:MI:SS');
-     end
-  end
+   for (select name, ip_description from ip_analogdef where (name like '__FD%' or name like '___FD%' or name like 'F3%DF%') and name not like '%FDI%' order by 1) do
+      CheckTag(name, FDmax, FDmin);
+      if (minCounter > 0) then
+         write name ||';'||ip_description||';'|| minCounter||';'||maxCounter||';'||
+            cast(firstTime as char format 'DD.MM.YY HH:MI:SS')||';'||cast(lastTime as char format 'DD.MM.YY HH:MI:SS');
+         begin
+            insert into "T221"."ISI"."FG_MAINT_ALARMS" (ALARM_DATE, TAG, DESCRIPTION, COUNTER_1, COUNTER_2, FIRST_DATE, LAST_DATE, TYPE_ID)
+            values (cast(current_timestamp as char format 'DD-MON-YY'), name, ip_description, minCounter, maxCounter, firstTime, lastTime, 2);
+         exception
+            write 'Failed to create record. ' || error_text;
+         end
+      end
+   end
 
 --   for (select name from ip_analogdef where (name like '15FD%' or name like '15_FD%' or name like 'F3%DF%') and name not like '%FDI%' order by 1) do
 --      for (select max, min, avg from aggregates where name like local.name and ts between timeStart and timeEnd and period = timeEnd - timeStart) do
