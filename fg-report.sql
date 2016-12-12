@@ -12,6 +12,7 @@
 -- 19oct12    HAASK     Done changes according to requirements from Sigve.
 -- 14nov12    HAASK     Will now copy files to G:\GAS\PA\ASPEN at the end.
 -- 2013-06-12 ROVO      Write results directly to external database.
+-- 2016-12-12 ROVO      Change database server to PLANT DATABASE2.
 --------------------------------------------------------------------------
 local tid integer,
       dayStart integer,
@@ -104,7 +105,7 @@ if (runGD = 1) then
          write name ||';'||ip_description||';'|| minCounter||';'||maxCounter||';'||
             cast(firstTime as char format 'DD.MM.YY HH:MI:SS')||';'||cast(lastTime as char format 'DD.MM.YY HH:MI:SS');
          begin
-            insert into "T221"."ISI"."FG_MAINT_ALARMS" (ALARM_DATE, TAG, DESCRIPTION, COUNTER_1, COUNTER_2, FIRST_DATE, LAST_DATE, TYPE_ID)
+            insert into "PLANT DATABASE2"."ISI"."FG_MAINT_ALARMS" (ALARM_DATE, TAG, DESCRIPTION, COUNTER_1, COUNTER_2, FIRST_DATE, LAST_DATE, TYPE_ID)
             values (cast(current_timestamp as char format 'DD-MON-YY'), name, ip_description, minCounter, maxCounter, firstTime, lastTime, 3);
             commit;
          exception
@@ -123,7 +124,7 @@ if (runGD = 1) then
          write name ||';'||ip_description||';'|| minCounter||';'||maxCounter||';'||
             cast(firstTime as char format 'DD.MM.YY HH:MI:SS')||';'||cast(lastTime as char format 'DD.MM.YY HH:MI:SS');
          begin
-            insert into "T221"."ISI"."FG_MAINT_ALARMS" (ALARM_DATE, TAG, DESCRIPTION, COUNTER_1, COUNTER_2, FIRST_DATE, LAST_DATE, TYPE_ID)
+            insert into "PLANT DATABASE2"."ISI"."FG_MAINT_ALARMS" (ALARM_DATE, TAG, DESCRIPTION, COUNTER_1, COUNTER_2, FIRST_DATE, LAST_DATE, TYPE_ID)
             values (cast(current_timestamp as char format 'DD-MON-YY'), name, ip_description, minCounter, maxCounter, firstTime, lastTime, 1);
             commit;
          exception
@@ -153,7 +154,7 @@ if (runFD = 1) then
          write name ||';'||ip_description||';'|| minCounter||';'||maxCounter||';'||
             cast(firstTime as char format 'DD.MM.YY HH:MI:SS')||';'||cast(lastTime as char format 'DD.MM.YY HH:MI:SS');
          begin
-            insert into "T221"."ISI"."FG_MAINT_ALARMS" (ALARM_DATE, TAG, DESCRIPTION, COUNTER_1, COUNTER_2, FIRST_DATE, LAST_DATE, TYPE_ID)
+            insert into "PLANT DATABASE2"."ISI"."FG_MAINT_ALARMS" (ALARM_DATE, TAG, DESCRIPTION, COUNTER_1, COUNTER_2, FIRST_DATE, LAST_DATE, TYPE_ID)
             values (cast(current_timestamp as char format 'DD-MON-YY'), name, ip_description, minCounter, maxCounter, firstTime, lastTime, 2);
             commit;
          exception
