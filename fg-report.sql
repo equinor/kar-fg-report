@@ -94,7 +94,7 @@ write 'Start time:' || cast(timeStart as char format 'DD.MM.YY HH:MI:SS');
 write 'End time:'|| cast(timeEnd as char format 'DD.MM.YY HH:MI:SS');
 
 if (runGD = 1) then
-   SET OUTPUT 'C:\logs\FG-report-GDR.csv';
+   --SET OUTPUT 'C:\logs\FG-report-GDR.csv';
    write 'Date:' || cast(current_timestamp as char format 'DD.MM.YY HH:MI:SS') || ';Report limits: '||GDmin||' <x< '||GDmax;
    write 'Tagname;Description;Counter1;Counter2;First;Last';
 
@@ -106,13 +106,14 @@ if (runGD = 1) then
          begin
             insert into "T221"."ISI"."FG_MAINT_ALARMS" (ALARM_DATE, TAG, DESCRIPTION, COUNTER_1, COUNTER_2, FIRST_DATE, LAST_DATE, TYPE_ID)
             values (cast(current_timestamp as char format 'DD-MON-YY'), name, ip_description, minCounter, maxCounter, firstTime, lastTime, 3);
+            commit;
          exception
             write 'Failed to create record. ' || error_text;
          end
       end
    end
 
-   SET OUTPUT 'C:\logs\FG-report-GD.csv';
+   --SET OUTPUT 'C:\logs\FG-report-GD.csv';
    write 'Date:' || cast(current_timestamp as char format 'DD.MM.YY HH:MI:SS') || ';Report limits: '||GD2min||' <x< '||GD2max;
    write 'Tagname;Description;Counter1;Counter2;First;Last';
 
@@ -124,6 +125,7 @@ if (runGD = 1) then
          begin
             insert into "T221"."ISI"."FG_MAINT_ALARMS" (ALARM_DATE, TAG, DESCRIPTION, COUNTER_1, COUNTER_2, FIRST_DATE, LAST_DATE, TYPE_ID)
             values (cast(current_timestamp as char format 'DD-MON-YY'), name, ip_description, minCounter, maxCounter, firstTime, lastTime, 1);
+            commit;
          exception
             write 'Failed to create record. ' || error_text;
          end
@@ -141,7 +143,7 @@ if (runGD = 1) then
 end
 
 if (runFD = 1) then
-   SET OUTPUT 'C:\logs\FG-report-FD.csv';
+   --SET OUTPUT 'C:\logs\FG-report-FD.csv';
    write 'Date:' || cast(current_timestamp as char format 'DD.MM.YY HH:MI:SS') || ';Report limits: '||FDmin||' <x< '||FDmax;
    write 'Tagname;Description;Counter1;Counter2;First;Last';
 
@@ -153,6 +155,7 @@ if (runFD = 1) then
          begin
             insert into "T221"."ISI"."FG_MAINT_ALARMS" (ALARM_DATE, TAG, DESCRIPTION, COUNTER_1, COUNTER_2, FIRST_DATE, LAST_DATE, TYPE_ID)
             values (cast(current_timestamp as char format 'DD-MON-YY'), name, ip_description, minCounter, maxCounter, firstTime, lastTime, 2);
+            commit;
          exception
             write 'Failed to create record. ' || error_text;
          end
@@ -170,6 +173,14 @@ end
 
 SET OUTPUT=DEFAULT;
 
-SYSTEM '"C:\\source\\scripts\\fg-copy-report.bat"';
+--SYSTEM '"C:\\source\\scripts\\fg-copy-report.bat"';
 
 write 'Program ended:' || getdbtime;;
+
+LOCAL CmdString CHAR(160);
+
+CmdString = 'C:\\UTILS\\BLAT\\blat.exe -to rovo@statoil.com';
+CmdString = CmdString || ' -body "FG report." -subject';
+CmdString = CmdString || ' "FG report" -f no-reply@statoil.no';
+
+SYSTEM CmdString;
