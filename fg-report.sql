@@ -68,7 +68,7 @@ end
 Write 'F&&G last week maintenance alarm report.';
 write 'Program started:' || cast(getdbtime as char format 'DD.MM.YY HH:MI:SS');
 
-dayStart = 7;	-- Number of days in the past for start time
+dayStart = 2;	-- Number of days in the past for start time
 dayEnd = 0;		-- Number of days in the past for end time, 0=now
 hourStep = 1;	-- Number of hours in step
 
